@@ -10,18 +10,16 @@ import Data.Hashable
 import Data.Typeable
 import Control.Monad
 
-type PostIds = Int
+type PostId = Int
 type Contents = String
 data BlogRequest a where
-  GetPostIds :: BlogRequest [PostIds]
-  GetContents :: PostIds -> BlogRequest Contents
+  GetPostIds :: BlogRequest [PostId]
 
 deriving instance Show (BlogRequest a)
 instance ShowP BlogRequest where showp = show
 deriving instance Typeable BlogRequest
 instance Hashable (BlogRequest a) where
-  hashWithSalt salt GetPostIds = hashWithSalt salt (0::Int)
-  hashWithSalt salt (GetContents p) = hashWithSalt salt (1::Int, p)
+  hashWithSalt salt GetPostIds = hashWithSalt salt ()
 deriving instance Eq (BlogRequest a)
 
 instance StateKey BlogRequest where
@@ -31,23 +29,26 @@ instance DataSourceName BlogRequest where
   dataSourceName _ = "BlogDataSource"
 
 instance DataSource u BlogRequest where
-  fetch _ _flags _userEnv blockedFetches = SyncFetch $ batchFetch blockedFetches
+  fetch _ _ _ reqs = SyncFetch $ batchFetch reqs
+
+
+runX :: BlogRequest a -> ResultVar a -> IO ()
+runX GetPostIds var = putSuccess var [1,2]
 
 newtype BlogDBException = BlogDBException String
   deriving (Show, Typeable)
 
 batchFetch :: [BlockedFetch BlogRequest] -> IO ()
-batchFetch xs = do
-  forM_ xs $ \i ->
-    case i of
-      BlockedFetch GetPostIds v -> putSuccess v [1,2] 
-  return ()
+batchFetch reqs = forM_ reqs $ \(BlockedFetch req v) -> runX req v
 
-getPostIds :: GenHaxl u [PostIds]
+initialState :: StateStore
+initialState = stateSet BlogDataState stateEmpty
+
+getPostIds :: GenHaxl u [PostId]
 getPostIds = dataFetch GetPostIds
 
 main :: IO ()
 main = do
-  u <- emptyEnv ()
-  runHaxl u getPostIds
-  print ""
+  u <- initEnv initialState ()
+  r <- runHaxl u getPostIds
+  print r
