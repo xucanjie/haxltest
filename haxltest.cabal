@@ -19,6 +19,11 @@ library
   build-depends:       base >= 4.7 && < 5
                      , haxl
                      , hashable
+                     , resource-pool
+                     , mysql-simple
+                     , containers
+                     , async
+                     , bytestring
   default-language:    Haskell2010
 
 executable haxltest-exe
@@ -29,6 +34,11 @@ executable haxltest-exe
                      , haxltest
                      , hashable
                      , haxl
+                     , resource-pool
+                     , mysql-simple
+                     , containers
+                     , async
+                     , bytestring
   default-language:    Haskell2010
 
 test-suite haxltest-test
